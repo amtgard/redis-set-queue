@@ -5,7 +5,7 @@ A setqueue built on top of redis
 
 This library is designed to be used with a cron or worker library, such as [workerman](https://github.com/walkor/workerman) (`composer require workerman/workerman`).
 
-It operates as a general pub/sub queue with the following tric: if any key is already in the queue, it will not be re-queued. 
+It operates as a general pub/sub queue with the following trick: if any key is already in the queue, it will not be re-queued. 
 When a duplicate key is requeued, the default operation is to return the existing message without replacement.
 
 `send()` with the optional $replace = true parameter will replace the existing message with the new message.

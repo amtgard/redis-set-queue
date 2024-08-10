@@ -8,7 +8,7 @@ This library is designed to be used with a cron or worker library, such as [work
 It operates as a general pub/sub queue with the following trick: if any key is already in the queue, it will not be re-queued. 
 When a duplicate key is requeued, the default operation is to return the existing message without replacement.
 
-`send()` with the optional $replace = true parameter will replace the existing message with the new message.
+`send()` with the optional `$replace = true` parameter will replace the existing message with the new message.
 
 In either case, no more than a single message will ever exist for the same key at the same time.
 

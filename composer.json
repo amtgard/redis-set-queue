@@ -1,0 +1,19 @@
+{
+  "name"  : "amtgard/redis-set-queue",
+  "type"  : "library",
+  "homepage": "https://github.com/amtgard/redis-set-queue",
+  "license" : "MIT",
+  "description": "Redis message SetQueue backed by workerman",
+  "require": {
+    "php": ">=8.1",
+    "ext-redis": "*",
+    "jedibc/optional": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {"Amtgard\\SetQueue\\": "./src"}
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.2",
+    "phake/phake": "^4.5"
+  }
+}

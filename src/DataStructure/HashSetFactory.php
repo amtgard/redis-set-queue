@@ -1,9 +1,8 @@
 <?php
 
-namespace Amtgard\SetQueue;
+namespace Amtgard\SetQueue\DataStructure;
 
 interface HashSetFactory
 {
-    public function __construct(DataStructureConfig $config);
-    public function create(String $name);
+    public function create(DataStructureConfig $config, String $name);
 }

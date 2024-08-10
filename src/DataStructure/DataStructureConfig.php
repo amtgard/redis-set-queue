@@ -1,9 +1,9 @@
 <?php
 
-namespace Amtgard\SetQueue;
+namespace Amtgard\SetQueue\DataStructure;
 
 interface DataStructureConfig
 {
-    public function setConfig(array $config);
+    public function setConfig(array|String $config, mixed $value = null);
     public function getConfig(): array;
 }

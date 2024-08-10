@@ -2,15 +2,13 @@
 
 namespace Amtgard\SetQueue\DataStructure;
 
-interface Queue
+interface RedrivableQueue
 {
     public function enqueue(String $entry);
 
-    public function dequeue(): String;
+    public function dequeue(int $count = 0): array;
 
-    public function dlqDequeue(): String;
-
-    public function dlqCommit(String $entry);
+    public function redrive();
 
     public function commit(String $entry);
 

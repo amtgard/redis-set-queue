@@ -1,24 +1,20 @@
 <?php
 
-namespace DataStructure;
+namespace Integ;
 
-use Amtgard\SetQueue\DataStructure\DataStructureConfig;
 use Amtgard\SetQueue\DataStructure\Entry;
 use Amtgard\SetQueue\DataStructure\HashSetFactory;
-use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryHashSetFactory;
-use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryRedrivableQueueFactory;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisDataStructureConfig;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisHashSetFactory;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisRedrivableQueueFactory;
 use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
 use Amtgard\SetQueue\DataStructure\SetQueue;
-use Phake;
 use PHPUnit\Framework\TestCase;
 use Redis;
 use function PHPUnit\Framework\assertEquals;
 use function PHPUnit\Framework\assertNull;
 
-class IntegRedisSetQueueTest extends TestCase
+class RedisSetQueueTest extends TestCase
 {
     private SetQueue $queue;
     private HashSetFactory $hashSetFactory;
@@ -62,14 +58,14 @@ class IntegRedisSetQueueTest extends TestCase
         $this->queue->enqueue("KEY2", "VALUE2");
         $this->queue->enqueue("KEY3", "VALUE3");
         $entry1 = new Entry("KEY1");
-        $entry1->message = "VALUE1";
+        $entry1->setMessage("VALUE1");
         $entry2 = new Entry("KEY2");
-        $entry2->message = "VALUE2";
+        $entry2->setMessage("VALUE2");
         $entry3 = new Entry("KEY3");
-        $entry3->message = "VALUE3";
-        assertEquals($entry1, $this->queue->dequeue());
-        assertEquals($entry2, $this->queue->dequeue());
-        assertEquals($entry3, $this->queue->dequeue());
+        $entry3->setMessage("VALUE3");
+        assertEquals([$entry1], $this->queue->dequeue());
+        assertEquals([$entry2], $this->queue->dequeue());
+        assertEquals([$entry3], $this->queue->dequeue());
     }
 
     public function testRedriveRequeues()
@@ -78,12 +74,12 @@ class IntegRedisSetQueueTest extends TestCase
 
         $this->queue->enqueue("KEY1", "VALUE1");
         $entry1 = new Entry("KEY1");
-        $entry1->message = "VALUE1";
-        assertEquals($entry1, $this->queue->dequeue());
+        $entry1->setMessage("VALUE1");
+        assertEquals([$entry1], $this->queue->dequeue());
         $null = $this->queue->dequeue();
-        assertNull($null);
+        assertNull($null[0]);
         $this->queue->redrive();
-        assertEquals($entry1, $this->queue->dequeue());
+        assertEquals([$entry1], $this->queue->dequeue());
     }
 
     public function testWhenCommit_thenNotRequeued() {
@@ -91,12 +87,31 @@ class IntegRedisSetQueueTest extends TestCase
 
         $this->queue->enqueue("KEY1", "VALUE1");
         $entry1 = new Entry("KEY1");
-        $entry1->message = "VALUE1";
-        assertEquals($entry1, $this->queue->dequeue());
-        assertNull($this->queue->dequeue());
+        $entry1->setMessage("VALUE1");
+        assertEquals([$entry1], $this->queue->dequeue());
+        assertNull($this->queue->dequeue()[0]);
         $this->queue->commit("KEY1");
         $this->queue->redrive();
-        assertNull($this->queue->dequeue());
+        assertNull($this->queue->dequeue()[0]);
+    }
+
+    public function testStoreRetrieve_MixedObject() {
+        $this->reset();
+
+        $stdo = new \stdClass();
+        $stdo->f1 = "f1";
+        $stdo->f2 = "f2";
+        $stdo->f3 = ["f3", "f4"];
+
+        $this->queue->enqueue("KEY1", $stdo);
+        $entry1 = new Entry("KEY1");
+        $entry1->setMessage($stdo);
+        $response = $this->queue->dequeue();
+        assertEquals([$entry1], $response);
+        assertNull($this->queue->dequeue()[0]);
+        $this->queue->commit("KEY1");
+        $this->queue->redrive();
+        assertNull($this->queue->dequeue()[0]);
     }
 
     protected function tearDown(): void

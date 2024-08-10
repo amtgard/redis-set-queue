@@ -4,14 +4,16 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.dev
-    working_dir: /var/www
+    ports:
+      - 36379:6379
+    working_dir: /var/amtgard/queue
     volumes:
-      - .:/var/www
+      - .:/var/amtgard/queue
     environment:
       - ENVIRONMENT=DEV
     container_name: amtgard-setqueue
     networks:
-      - ork4-php8-net
+      - amtgard-setqueue
 
 networks:
   amtgard-setqueue:

@@ -1,20 +1,18 @@
 <?php
 
-namespace DataStructure;
+namespace Integ;
 
 use Amtgard\SetQueue\DataStructure\DataStructureConfig;
 use Amtgard\SetQueue\DataStructure\Entry;
 use Amtgard\SetQueue\DataStructure\HashSetFactory;
 use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryHashSetFactory;
 use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryRedrivableQueueFactory;
-use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisDataStructureConfig;
-use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisRedrivableQueueFactory;
 use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
 use Amtgard\SetQueue\DataStructure\SetQueue;
 use Phake;
 use PHPUnit\Framework\TestCase;
 
-class IntegInMemorySetQueueTest extends TestCase
+class InMemorySetQueueTest extends TestCase
 {
     private SetQueue $queue;
     private HashSetFactory $hashSetFactory;
@@ -32,25 +30,25 @@ class IntegInMemorySetQueueTest extends TestCase
     public function testEnqueueDeque() {
         $this->queue->enqueue("KEY", "VALUE");
         $entry = new Entry("KEY");
-        $entry->message = "VALUE";
-        self::assertEquals($entry, $this->queue->dequeue());
+        $entry->setMessage("VALUE");
+        self::assertEquals([$entry], $this->queue->dequeue());
     }
 
     public function testRedriveRequeues() {
         $this->queue->enqueue("KEY", "VALUE");
         $entry = new Entry("KEY");
-        $entry->message = "VALUE";
-        self::assertEquals($entry, $this->queue->dequeue());
+        $entry->setMessage("VALUE");
+        self::assertEquals([$entry], $this->queue->dequeue());
         $this->queue->redrive();
-        self::assertEquals($entry, $this->queue->dequeue());
+        self::assertEquals([$entry], $this->queue->dequeue());
     }
     public function testCommitClearsQueue() {
         $this->queue->enqueue("KEY", "VALUE");
         $entry = new Entry("KEY");
-        $entry->message = "VALUE";
-        self::assertEquals($entry, $this->queue->dequeue());
+        $entry->setMessage("VALUE");
+        self::assertEquals([$entry], $this->queue->dequeue());
         $this->queue->commit("KEY");
-        self::assertEquals(null, $this->queue->dequeue());
+        self::assertEquals(null, $this->queue->dequeue()[0]);
     }
 
 }

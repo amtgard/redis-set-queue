@@ -1,18 +1,13 @@
 <?php
 
-namespace Amtgard\SetQueue\DataStructure\Impl;
+namespace Amtgard\SetQueue\DataStructure\Impl\InMemory;
 
 use Amtgard\SetQueue\DataStructure\DataStructureConfig;
-use Amtgard\SetQueue\DataStructure\QueueFactory;
+use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
 
-class InMemoryQueueFactory implements QueueFactory
+class InMemoryRedrivableQueueFactory implements RedrivableQueueFactory
 {
-
-    public function __construct(DataStructureConfig $config)
-    {
-    }
-
-    public function create(string $name)
+    public function create(DataStructureConfig $config, string $name)
     {
         return new InMemoryRedrivableQueue();
     }

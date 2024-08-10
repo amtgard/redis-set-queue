@@ -1,0 +1,17 @@
+version: '2'
+services:
+  setqueue:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    environment:
+      - ENVIRONMENT=DEV
+    container_name: amtgard-setqueue
+    networks:
+      - ork4-php8-net
+
+networks:
+  amtgard-setqueue:

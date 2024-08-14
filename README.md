@@ -1,3 +1,7 @@
+
+
+[![Code Climate](https://codeclimate.com/github/amtgard/redis-ser-queue/badges/gpa.svg)](https://codeclimate.com/github/amtgard/redis-set-queue)
+
 # redis-set-queue
 A setqueue built on top of redis
 

@@ -79,3 +79,19 @@ if ($redis->isConnected()) {
 }
 
 ```
+
+## Building & Testing
+
+Built and tested on PHP 8.3 & 8.4 with Redis extensions.
+
+You may need to install and configure Redis extensions:
+
+`pecl install redis`
+
+To test all methods, you will need to run Redis locally (and modify tests) or run the provided docker file to set up a test server.
+
+`docker compose -f docker-compose-php8-setqueue.dev.yml up -d --build`
+
+Then run:
+
+`./vendor/bin/phpunit`

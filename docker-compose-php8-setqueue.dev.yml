@@ -1,0 +1,19 @@
+version: '2'
+services:
+  setqueue:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dev
+    ports:
+      - 36379:6379
+    working_dir: /var/amtgard/queue
+    volumes:
+      - .:/var/amtgard/queue
+    environment:
+      - ENVIRONMENT=DEV
+    container_name: amtgard-setqueue
+    networks:
+      - amtgard-setqueue
+
+networks:
+  amtgard-setqueue:

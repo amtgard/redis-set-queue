@@ -1,0 +1,26 @@
+FROM ubuntu:24.04
+
+RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get -y install tzdata
+RUN apt-get update && apt-get install -y less gzip wget zip unzip git nano redis
+RUN apt-get update && apt-get install --no-install-recommends -y php8.3
+RUN apt-get update && apt-get install -y php8.3-fpm php8.3-cli php8.3-common php8.3-mbstring php8.3-curl php8.3-xml php8.3-redis php8.3-gd
+RUN apt-get update && apt-get install php8.3-xdebug
+
+COPY xdebug.dev.ini /etc/php/8.3/mods-available/xdebug.ini
+
+RUN mkdir -p /var/amtgard/queue
+
+COPY --from=composer /usr/bin/composer /var/amtgard/queue/composer.phar
+RUN mv /var/amtgard/queue/composer.phar /usr/local/bin/composer
+
+WORKDIR /var/amtgard/queue
+
+COPY heartbeat.sh /var/amtgard/queue/heartbeat.sh
+RUN chmod +x heartbeat.sh
+
+COPY redis.conf /etc/redis/redis.conf
+COPY redis-server /etc/init.d/redis-server
+RUN chmod o+r /etc/redis/redis.conf
+
+CMD ./heartbeat.sh

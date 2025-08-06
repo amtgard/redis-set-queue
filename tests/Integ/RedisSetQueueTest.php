@@ -3,11 +3,11 @@
 namespace Integ;
 
 use Amtgard\SetQueue\DataStructure\Entry;
-use Amtgard\SetQueue\DataStructure\HashSetFactory;
+use Amtgard\SetQueue\DataStructure\HashSetFactoryInterface;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisDataStructureConfig;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisHashSetFactory;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisRedrivableQueueFactory;
-use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
+use Amtgard\SetQueue\DataStructure\RedrivableQueueFactoryInterface;
 use Amtgard\SetQueue\DataStructure\SetQueue;
 use PHPUnit\Framework\TestCase;
 use Redis;
@@ -17,8 +17,8 @@ use function PHPUnit\Framework\assertNull;
 class RedisSetQueueTest extends TestCase
 {
     private SetQueue $queue;
-    private HashSetFactory $hashSetFactory;
-    private RedrivableQueueFactory $redrivableQueueFactory;
+    private HashSetFactoryInterface $hashSetFactory;
+    private RedrivableQueueFactoryInterface $redrivableQueueFactory;
     private Redis $redis;
 
     protected function setUp(): void
@@ -54,15 +54,12 @@ class RedisSetQueueTest extends TestCase
     public function testQueueFifo() {
         $this->reset();
 
-        $this->queue->enqueue("KEY1", "VALUE1");
-        $this->queue->enqueue("KEY2", "VALUE2");
-        $this->queue->enqueue("KEY3", "VALUE3");
-        $entry1 = new Entry("KEY1");
-        $entry1->setMessage("VALUE1");
-        $entry2 = new Entry("KEY2");
-        $entry2->setMessage("VALUE2");
-        $entry3 = new Entry("KEY3");
-        $entry3->setMessage("VALUE3");
+        $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
+        $entry2 = Entry::builder()->key("KEY2")->value("VALUE1")->build();
+        $entry3 = Entry::builder()->key("KEY3")->value("VALUE1")->build();
+        $this->queue->enqueue($entry1);
+        $this->queue->enqueue($entry2);
+        $this->queue->enqueue($entry3);
         assertEquals([$entry1], $this->queue->dequeue());
         assertEquals([$entry2], $this->queue->dequeue());
         assertEquals([$entry3], $this->queue->dequeue());
@@ -72,9 +69,8 @@ class RedisSetQueueTest extends TestCase
     {
         $this->reset();
 
-        $this->queue->enqueue("KEY1", "VALUE1");
-        $entry1 = new Entry("KEY1");
-        $entry1->setMessage("VALUE1");
+        $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
+        $this->queue->enqueue($entry1);
         assertEquals([$entry1], $this->queue->dequeue());
         $null = $this->queue->dequeue();
         assertNull($null[0]);
@@ -85,12 +81,11 @@ class RedisSetQueueTest extends TestCase
     public function testWhenCommit_thenNotRequeued() {
         $this->reset();
 
-        $this->queue->enqueue("KEY1", "VALUE1");
-        $entry1 = new Entry("KEY1");
-        $entry1->setMessage("VALUE1");
+        $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
+        $this->queue->enqueue($entry1);
         assertEquals([$entry1], $this->queue->dequeue());
         assertNull($this->queue->dequeue()[0]);
-        $this->queue->commit("KEY1");
+        $this->queue->commit($entry1);
         $this->queue->redrive();
         assertNull($this->queue->dequeue()[0]);
     }
@@ -103,13 +98,13 @@ class RedisSetQueueTest extends TestCase
         $stdo->f2 = "f2";
         $stdo->f3 = ["f3", "f4"];
 
-        $this->queue->enqueue("KEY1", $stdo);
-        $entry1 = new Entry("KEY1");
-        $entry1->setMessage($stdo);
+        $entry1 = Entry::builder()->key("KEY1")->value($stdo)->build();
+        $this->queue->enqueue($entry1);
+
         $response = $this->queue->dequeue();
         assertEquals([$entry1], $response);
         assertNull($this->queue->dequeue()[0]);
-        $this->queue->commit("KEY1");
+        $this->queue->commit($entry1);
         $this->queue->redrive();
         assertNull($this->queue->dequeue()[0]);
     }

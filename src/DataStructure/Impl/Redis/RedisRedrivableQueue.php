@@ -2,10 +2,12 @@
 
 namespace Amtgard\SetQueue\DataStructure\Impl\Redis;
 
-use Amtgard\SetQueue\DataStructure\RedrivableQueue;
+use Amtgard\Interface\EntryInterface;
+use Amtgard\Interface\RedrivableQueueInterface;
+use Amtgard\SetQueue\DataStructure\Entry;
 use Redis;
 
-class RedisRedrivableQueue implements RedrivableQueue
+class RedisRedrivableQueue implements RedrivableQueueInterface
 {
     private String $queueKey;
 
@@ -19,19 +21,21 @@ class RedisRedrivableQueue implements RedrivableQueue
         $this->redis = $redis;
     }
 
-    public function enqueue(string $entry)
+    function enqueue(EntryInterface $entry, bool $replace = true): mixed
     {
-        return $this->redis->lpush($this->queueKey, $entry);
+        return $this->redis->lpush($this->queueKey, json_encode($entry));
     }
 
     public function dequeue(int $count = 1): array
     {
         $this->redis->watch($this->queueKey);
-        $value = null;
+        $entry = null;
         if (count($this->redis->lRange($this->queueKey, 0, 0)) > 0) {
-            $value = $this->redis->rPopLPush($this->queueKey, $this->redriveQueueKey);
+            $value = json_decode($this->redis->rPopLPush($this->queueKey, $this->redriveQueueKey));
+
+            $entry = Entry::builder()->key($value->key)->value($value->value)->build();
         }
-        return $value ? [$value] : [];
+        return $entry ? [$entry] : [];
     }
 
     public function redrive()
@@ -41,8 +45,8 @@ class RedisRedrivableQueue implements RedrivableQueue
         }
     }
 
-    public function commit(string $entry)
+    public function commit(EntryInterface $entry): mixed
     {
-        return $this->redis->lrem($this->redriveQueueKey, $entry, 0);
+        return $this->redis->lrem($this->redriveQueueKey, json_encode($entry), 0);
     }
 }

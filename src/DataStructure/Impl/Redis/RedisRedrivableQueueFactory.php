@@ -3,10 +3,10 @@
 namespace Amtgard\SetQueue\DataStructure\Impl\Redis;
 
 use Amtgard\SetQueue\DataStructure\DataStructureConfig;
-use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
+use Amtgard\SetQueue\DataStructure\RedrivableQueueFactoryInterface;
 use Redis;
 
-class RedisRedrivableQueueFactory implements RedrivableQueueFactory
+class RedisRedrivableQueueFactory implements RedrivableQueueFactoryInterface
 {
 
     public function create(DataStructureConfig $config, string $name)

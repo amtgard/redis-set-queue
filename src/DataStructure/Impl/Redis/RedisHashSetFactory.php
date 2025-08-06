@@ -3,10 +3,10 @@
 namespace Amtgard\SetQueue\DataStructure\Impl\Redis;
 
 use Amtgard\SetQueue\DataStructure\DataStructureConfig;
-use Amtgard\SetQueue\DataStructure\HashSetFactory;
+use Amtgard\SetQueue\DataStructure\HashSetFactoryInterface;
 use Redis;
 
-class RedisHashSetFactory implements HashSetFactory
+class RedisHashSetFactory implements HashSetFactoryInterface
 {
     public function create(DataStructureConfig $config, string $name)
     {

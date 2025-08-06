@@ -4,10 +4,10 @@ namespace Integ;
 
 use Amtgard\SetQueue\DataStructure\DataStructureConfig;
 use Amtgard\SetQueue\DataStructure\Entry;
-use Amtgard\SetQueue\DataStructure\HashSetFactory;
+use Amtgard\SetQueue\DataStructure\HashSetFactoryInterface;
 use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryHashSetFactory;
 use Amtgard\SetQueue\DataStructure\Impl\InMemory\InMemoryRedrivableQueueFactory;
-use Amtgard\SetQueue\DataStructure\RedrivableQueueFactory;
+use Amtgard\SetQueue\DataStructure\RedrivableQueueFactoryInterface;
 use Amtgard\SetQueue\DataStructure\SetQueue;
 use Phake;
 use PHPUnit\Framework\TestCase;
@@ -15,8 +15,8 @@ use PHPUnit\Framework\TestCase;
 class InMemorySetQueueTest extends TestCase
 {
     private SetQueue $queue;
-    private HashSetFactory $hashSetFactory;
-    private RedrivableQueueFactory $redrivableQueueFactory;
+    private HashSetFactoryInterface $hashSetFactory;
+    private RedrivableQueueFactoryInterface $redrivableQueueFactory;
 
     protected function setUp(): void
     {
@@ -28,26 +28,23 @@ class InMemorySetQueueTest extends TestCase
     }
 
     public function testEnqueueDeque() {
-        $this->queue->enqueue("KEY", "VALUE");
-        $entry = new Entry("KEY");
-        $entry->setMessage("VALUE");
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        $this->queue->enqueue($entry);
         self::assertEquals([$entry], $this->queue->dequeue());
     }
 
     public function testRedriveRequeues() {
-        $this->queue->enqueue("KEY", "VALUE");
-        $entry = new Entry("KEY");
-        $entry->setMessage("VALUE");
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        $this->queue->enqueue($entry);
         self::assertEquals([$entry], $this->queue->dequeue());
         $this->queue->redrive();
         self::assertEquals([$entry], $this->queue->dequeue());
     }
     public function testCommitClearsQueue() {
-        $this->queue->enqueue("KEY", "VALUE");
-        $entry = new Entry("KEY");
-        $entry->setMessage("VALUE");
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        $this->queue->enqueue($entry);
         self::assertEquals([$entry], $this->queue->dequeue());
-        $this->queue->commit("KEY");
+        $this->queue->commit($entry);
         self::assertEquals(null, $this->queue->dequeue()[0]);
     }
 

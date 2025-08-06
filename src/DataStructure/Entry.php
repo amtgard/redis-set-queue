@@ -2,34 +2,36 @@
 
 namespace Amtgard\SetQueue\DataStructure;
 
-use Optional\Optional;
+use Amtgard\Interface\EntryInterface;use Amtgard\Traits\Builder\Builder;use Amtgard\Traits\Builder\PostInit;use Optional\Optional;
 
-class Entry
+class Entry implements EntryInterface
 {
-    private mixed $message;
-    private String $key;
-    private bool $hasMessage;
+    use Builder;
 
-    public function __construct(mixed $key, mixed $message = null)
+    private mixed $value;
+    private ?String $key;
+    private bool $hasValue;
+
+    public function __construct(string $key = null, \JsonSerializable|string $message = null)
     {
         $this->key = $key;
-        $this->hasMessage = false;
+        $this->hasValue = false;
         Optional::ofNullable($message)
             ->ifPresent(function() use ($message) {
-                $this->message = $message;
-                $this->hasMessage = true;
+                $this->value = $message;
+                $this->hasValue = true;
             });
     }
 
-    public function setMessage(mixed $message)
+    public function setValue(mixed $value)
     {
-        $this->hasMessage = true;
-        $this->message = $message;
+        $this->hasValue = true;
+        $this->value = $value;
     }
 
-    public function getMessage(): mixed
+    public function getValue(): mixed
     {
-        return $this->message;
+        return $this->value;
     }
 
     public function setKey(string $key)
@@ -37,14 +39,29 @@ class Entry
         $this->key = $key;
     }
 
-    public function getKey(): string
+    public function getHash(): string
     {
-        return $this->key;
+        return Optional::ofNullable($this->key)->map(fn($key) => $key)->orElseGet(fn() => md5(json_encode($this->value)));
     }
 
-    public function hasMessage(): bool
+    public function hasValue(): bool
     {
-        return $this->hasMessage;
+        return $this->hasValue;
     }
 
+    #[PostInit]
+    private function postInit(): void
+    {
+        if (!isset($this->value)) {
+            throw new \InvalidArgumentException("In class Entry the field value must be set.");
+        }
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return [
+            'key' => $this->key,
+            'value' => $this->value
+        ];
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace DataStructure\Impl\Redis;
 
+use Amtgard\SetQueue\DataStructure\Entry;
 use Amtgard\SetQueue\DataStructure\Impl\Redis\RedisRedrivableQueue;
 use PHPUnit\Framework\TestCase;
 use Redis;
@@ -38,34 +39,39 @@ class RedisRedrivableQueueTest extends TestCase
     public function testQueueFifo() {
         $this->reset();
 
-        $this->queue->enqueue("ENTRY1");
-        $this->queue->enqueue("ENTRY2");
-        $this->queue->enqueue("ENTRY3");
-        assertEquals(["ENTRY1"], $this->queue->dequeue());
-        assertEquals(["ENTRY2"], $this->queue->dequeue());
-        assertEquals(["ENTRY3"], $this->queue->dequeue());
+        $entry1 = Entry::builder()->value("ENTRY1")->build();
+        $entry2 = Entry::builder()->value("ENTRY2")->build();
+        $entry3 = Entry::builder()->value("ENTRY3")->build();
+        $this->queue->enqueue($entry1);
+        $this->queue->enqueue($entry2);
+        $this->queue->enqueue($entry3);
+        assertEquals([$entry1], $this->queue->dequeue());
+        assertEquals([$entry2], $this->queue->dequeue());
+        assertEquals([$entry3], $this->queue->dequeue());
     }
 
     public function testRedriveRequeues()
     {
         $this->reset();
 
-        $this->queue->enqueue("ENTRY1");
-        assertEquals(["ENTRY1"], $this->queue->dequeue());
+        $entry1 = Entry::builder()->value("ENTRY1")->build();
+        $this->queue->enqueue($entry1);
+        assertEquals([$entry1], $this->queue->dequeue());
         $null = $this->queue->dequeue();
         assertNull($null[0]);
         $this->queue->redrive();
         $entry = $this->queue->dequeue();
-        assertEquals(["ENTRY1"], $entry);
+        assertEquals([$entry1], $entry);
     }
 
     public function testWhenCommit_thenNotRequeued() {
         $this->reset();
 
-        $this->queue->enqueue("ENTRY1");
-        assertEquals(["ENTRY1"], $this->queue->dequeue());
+        $entry1 = Entry::builder()->value("ENTRY1")->build();
+        $this->queue->enqueue($entry1);
+        assertEquals([$entry1], $this->queue->dequeue());
         assertNull($this->queue->dequeue()[0]);
-        $this->queue->commit("ENTRY1");
+        $this->queue->commit($entry1);
         $this->queue->redrive();
         assertNull($this->queue->dequeue()[0]);
     }

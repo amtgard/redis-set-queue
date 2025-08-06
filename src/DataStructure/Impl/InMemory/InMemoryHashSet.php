@@ -2,46 +2,46 @@
 
 namespace Amtgard\SetQueue\DataStructure\Impl\InMemory;
 
-use Amtgard\SetQueue\DataStructure\Entry;
-use Amtgard\SetQueue\DataStructure\HashSet;
+use Amtgard\Interface\EntryInterface;
+use Amtgard\Interface\HashSetInterface;
 
-class InMemoryHashSet implements HashSet
+class InMemoryHashSet implements HashSetInterface
 {
     private array $set = [];
 
-    public function add(Entry $entry): mixed
+    public function add(EntryInterface $entry): mixed
     {
-        if (!$this->contains($entry->getKey())) {
-            $this->set[$entry->getKey()] = $entry->getMessage();
+        if (!$this->contains($entry)) {
+            $this->set[$entry->getHash()] = $entry->getValue();
         }
-        return $this->set[$entry->getKey()];
+        return $this->set[$entry->getHash()];
     }
 
-    public function contains($key): bool
+    public function contains(EntryInterface $entry): bool
     {
-        return array_key_exists($key, $this->set);
+        return array_key_exists($entry->getHash(), $this->set);
     }
 
-    public function remove($key): mixed
+    public function remove(EntryInterface $entry): mixed
     {
-        if ($this->contains($key)) {
-            $value = $this->set[$key];
-            unset($this->set[$key]);
+        if ($this->contains($entry)) {
+            $value = $this->set[$entry->getHash()];
+            unset($this->set[$entry->getHash()]);
             return $value;
         }
         return null;
     }
 
-    public function get($key): mixed
+    public function get(EntryInterface $entry): mixed
     {
-        return $this->contains($key) ? $this->set[$key] : null;
+        return $this->contains($entry) ? $this->set[$entry->getHash()] : null;
     }
 
-    public function getList(array $keys): array
+    public function getList(array $entries): array
     {
         $values = [];
-        foreach ($keys as $key) {
-            $values[] = $this->get($key);
+        foreach ($entries as $entry) {
+            $values[] = $this->get($entry);
         }
         return $values;
     }

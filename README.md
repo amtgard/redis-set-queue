@@ -1,5 +1,3 @@
-
-
 [![Code Climate](https://codeclimate.com/github/amtgard/redis-set-queue/badges/gpa.svg)](https://codeclimate.com/github/amtgard/redis-set-queue)
 
 # redis-set-queue

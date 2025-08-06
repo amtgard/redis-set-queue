@@ -37,7 +37,7 @@ class RedisHashSetTest extends TestCase
 
         $entry = new Entry("KEY", "VALUE");
         $this->set->add($entry);
-        \PHPUnit\Framework\assertTrue($this->set->contains("KEY"));
+        \PHPUnit\Framework\assertTrue($this->set->contains($entry));
     }
 
     public function testWhenValueRemoved_thenNotContained() {
@@ -45,29 +45,29 @@ class RedisHashSetTest extends TestCase
         $entry2 = new Entry("KEY2", "VALUE2");
         $this->set->add($entry1);
         $this->set->add($entry2);
-        \PHPUnit\Framework\assertEquals("VALUE1", $this->set->remove("KEY1"));
-        \PHPUnit\Framework\assertFalse($this->set->contains("KEY1"));
+        \PHPUnit\Framework\assertEquals("VALUE1", $this->set->remove($entry1));
+        \PHPUnit\Framework\assertFalse($this->set->contains($entry1));
     }
 
     public function testWhenKeyNotAdded_thenNotContained() {
-        \PHPUnit\Framework\assertFalse($this->set->contains("KEY"));
+        \PHPUnit\Framework\assertFalse($this->set->contains(Entry::builder()->key("KEY")->value("V")->build()));
     }
 
     public function testWhenKeyIsAdded_thenGetReturnsValue() {
         $entry = new Entry("KEY", "VALUE");
         $this->set->add($entry);
-        \PHPUnit\Framework\assertEquals("VALUE", $this->set->get("KEY"));
+        \PHPUnit\Framework\assertEquals("VALUE", $this->set->get($entry));
     }
 
     public function testWhenKeyIsRemoved_thenGetReturnsNull() {
         $entry = new Entry("KEY", "VALUE");
         $this->set->add($entry);
-        $this->set->remove("KEY");
-        \PHPUnit\Framework\assertNull($this->set->get("KEY"));
+        $this->set->remove($entry);
+        \PHPUnit\Framework\assertNull($this->set->get($entry));
     }
 
     public function testWhenKeyIsNotAdded_thenGetReturnsNull() {
-        \PHPUnit\Framework\assertNull($this->set->get("KEY"));
+        \PHPUnit\Framework\assertNull($this->set->get(Entry::builder()->key("KEY")->value("V")->build()));
     }
 
     protected function tearDown(): void

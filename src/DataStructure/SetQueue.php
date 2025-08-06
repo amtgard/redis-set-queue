@@ -2,60 +2,61 @@
 
 namespace Amtgard\SetQueue\DataStructure;
 
-use Amtgard\SetQueue\DataStructure\Impl\DefaultEntry;
+use Amtgard\Interface\EntryInterface;
+use Amtgard\Interface\HashSetInterface;
+use Amtgard\Interface\RedrivableQueueInterface;
+use Amtgard\Interface\SetQueueInterface;
 use Optional\Optional;
 
-class SetQueue
+class SetQueue implements SetQueueInterface
 {
-    private HashSet $set;
-    private RedrivableQueue $queue;
+    private HashSetInterface $set;
+    private RedrivableQueueInterface $queue;
     private String $name;
     private DataStructureConfig $config;
-    public function __construct(String $name, DataStructureConfig $config, HashSetFactory $setFactory, RedrivableQueueFactory $queueFactory) {
+    public function __construct(String $name, DataStructureConfig $config, HashSetFactoryInterface $setFactory, RedrivableQueueFactoryInterface $queueFactory) {
         $this->name = $name;
         $this->config = $config;
         $this->set = $setFactory->create($this->config, $this->name);
         $this->queue = $queueFactory->create($this->config, $this->name);
     }
 
-    public function getName(): String {
+    public function getName(): String
+    {
         return $this->name;
+
     }
 
-    public function enqueue(String $key, mixed $message, bool $replace = true) {
-        $entry = new Entry($key);
-        $entry->setMessage($message);
-        if ($this->set->contains($key)) {
+    public function enqueue(EntryInterface $entry, bool $replace = true): mixed {
+        if ($this->set->contains($entry)) {
             if ($replace) {
                 $this->set->add($entry);
             }
-            return $this->set->get($key);
+            return $this->set->get($entry);
         } else {
-            $this->queue->enqueue($key);
+            $this->queue->enqueue($entry);
             $this->set->add($entry);
-            return $this->set->get($key);
+            return $this->set->get($entry);
         }
     }
 
     public function dequeue($count = 1): array {
-        $keys = $this->queue->dequeue($count);
-        $values = $this->set->getList($keys);
-        $entries = [];
+        $entries = $this->queue->dequeue($count);
+        $values = $this->set->getList($entries);
+        $dequeues = [];
         foreach ($values as $index => $value) {
-            $key = $keys[$index];
+            $entry = $entries[$index];
             Optional::ofNullable($value)
-                ->ifPresent(function() use ($key, &$entries) {
-                    $entry = new Entry($key);
-                    $entry->setMessage($this->set->get($entry->getKey()));
-                    $entries[] = $entry;
+                ->ifPresent(function() use ($entry, &$dequeues) {
+                    $dequeues[] = $entry;
                 });
         }
-        return $entries;
+        return $dequeues;
     }
 
-    public function commit(String $key) {
-        $this->set->remove($key);
-        return $this->queue->commit($key);
+    public function commit(EntryInterface $entry): mixed {
+        $this->set->remove($entry);
+        return $this->queue->commit($entry);
     }
 
     public function redrive() {

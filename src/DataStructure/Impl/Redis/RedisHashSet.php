@@ -2,12 +2,11 @@
 
 namespace Amtgard\SetQueue\DataStructure\Impl\Redis;
 
-use Amtgard\SetQueue\DataStructure\Entry;
-use Amtgard\SetQueue\DataStructure\HashSet;
-use Optional\Optional;
+use Amtgard\Interface\EntryInterface;
+use Amtgard\Interface\HashSetInterface;
 use Redis;
 
-class RedisHashSet implements HashSet
+class RedisHashSet implements HashSetInterface
 {
     private String $setKey;
     private Redis $redis;
@@ -17,33 +16,33 @@ class RedisHashSet implements HashSet
         $this->redis = $redis;
     }
 
-    public function add(Entry $entry): mixed
+    public function add(EntryInterface $entry): mixed
     {
-        return $this->redis->hset($this->setKey, $entry->getKey(), json_encode($entry->getMessage())) ? $entry->getMessage() : null;
+        return $this->redis->hset($this->setKey, $entry->getHash(), json_encode($entry->getValue())) ? $entry->getValue() : null;
     }
 
-    public function contains(mixed $key): bool
+    public function contains(EntryInterface $entry): bool
     {
-        return (bool)$this->redis->hExists($this->setKey, $key);
+        return (bool)$this->redis->hExists($this->setKey, $entry->getHash());
     }
 
-    public function remove(mixed $key): mixed
+    public function remove(EntryInterface $entry): mixed
     {
-        $response = $this->redis->multi()->hget($this->setKey, $key)->hdel($this->setKey, $key)->exec();
+        $response = $this->redis->multi()->hget($this->setKey, $entry->getHash())->hdel($this->setKey, $entry->getHash())->exec();
         return is_array($response) && count($response) == 2 ? json_decode($response[0], false) : null;
     }
 
-    public function get(mixed $key): mixed
+    public function get(EntryInterface $entry): mixed
     {
-        $value = $this->redis->hget($this->setKey, $key);
+        $value = $this->redis->hget($this->setKey, $entry->getHash());
         return $value ? json_decode($value, false) : null;
     }
 
-    public function getList(array $keys): array
+    public function getList(array $entries): array
     {
         $values = [];
-        foreach ($keys as $key) {
-            $values[] = $this->get($key);
+        foreach ($entries as $entry) {
+            $values[] = $this->get($entry);
         }
         return $values;
     }

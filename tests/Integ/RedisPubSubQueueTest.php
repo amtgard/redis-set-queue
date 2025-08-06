@@ -13,7 +13,7 @@ use Redis;
 class RedisPubSubQueueTest extends TestCase
 {
     private Redis $redis;
-    private RedishashSetFactory $hashSetFactory;
+    private RedisHashSetFactory $hashSetFactory;
     private RedisRedrivableQueueFactory $redrivableQueueFactory;
     private SetQueue $queue;
 
@@ -40,7 +40,7 @@ class RedisPubSubQueueTest extends TestCase
 
     public function testPubSub() {
         $pubSub = new PubSubQueue();
-        $pubSub->addQueue($this->queue);
+        $pubSub->addQueue("TEST", $this->queue);
 
         $callCount = 0;
         $handle = $pubSub->subscribe($this->queue->getName(), function($key, $message) use (&$callCount) {
@@ -48,18 +48,18 @@ class RedisPubSubQueueTest extends TestCase
                 $callCount++;
             }
         });
-        $pubSub->send($handle, "KEY1", "MESSAGE1");
-        $pubSub->send($handle, "KEY2", "MESSAGE2");
-        $pubSub->send($handle, "KEY3", "MESSAGE1");
-        $pubSub->pump($this->queue->getName());
-        $pubSub->pump($this->queue->getName());
-        $pubSub->pump($this->queue->getName());
+        $pubSub->publish($handle, "KEY1", "MESSAGE1");
+        $pubSub->publish($handle, "KEY2", "MESSAGE2");
+        $pubSub->publish($handle, "KEY3", "MESSAGE1");
+        $pubSub->callConsumers($this->queue->getName());
+        $pubSub->callConsumers($this->queue->getName());
+        $pubSub->callConsumers($this->queue->getName());
         self::assertEquals(2, $callCount);
     }
 
     public function testWhenCallFails_thenFailureHandler() {
         $pubSub = new PubSubQueue();
-        $pubSub->addQueue($this->queue);
+        $pubSub->addQueue("TEST", $this->queue);
 
         $callCount = 0;
         $handle = $pubSub->subscribe($this->queue->getName(), function($key, $message) use (&$callCount) {
@@ -69,12 +69,12 @@ class RedisPubSubQueueTest extends TestCase
                 $callCount++;
             }
         });
-        $pubSub->send($handle, "KEY1", "MESSAGE1");
-        $pubSub->send($handle, "KEY2", "MESSAGE2");
-        $pubSub->send($handle, "KEY3", "MESSAGE1");
-        $pubSub->pump($this->queue->getName());
-        $pubSub->pump($this->queue->getName());
-        $pubSub->pump($this->queue->getName());
+        $pubSub->publish($handle, "KEY1", "MESSAGE1");
+        $pubSub->publish($handle, "KEY2", "MESSAGE2");
+        $pubSub->publish($handle, "KEY3", "MESSAGE1");
+        $pubSub->callConsumers($this->queue->getName());
+        $pubSub->callConsumers($this->queue->getName());
+        $pubSub->callConsumers($this->queue->getName());
         self::assertEquals(2, $callCount);
     }
 

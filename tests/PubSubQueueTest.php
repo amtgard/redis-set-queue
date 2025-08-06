@@ -11,7 +11,7 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->redrive();
         Phake::when($setQ)->getName()->thenReturn('test');
         $queue = new PubSubQueue();
-        \PHPUnit\Framework\assertEquals("test", $queue->addQueue($setQ));
+        \PHPUnit\Framework\assertEquals("test", $queue->addQueue($setQ->getName(), $setQ));
         $queue->redrive("test");
         Phake::verify($setQ)->redrive();
     }
@@ -25,7 +25,7 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->dequeue()->thenReturn($entry);
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue($setQ->getName(), $setQ);
 
         self::assertEquals("test",
             $queue->subscribe("test", function($key, $message) {}));
@@ -42,7 +42,7 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue("test", $setQ);
 
         self::assertEquals(
             "test",
@@ -52,9 +52,9 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
                     assertEquals("value", $message);
                 }));
 
-        $queue->pump("test");
+        $queue->callConsumers("test");
 
-        Phake::verify($setQ)->commit($entry->getKey());
+        Phake::verify($setQ)->commit($entry);
     }
 
     public function testWhenCallThrows_thenFailureHandlerCalled() {
@@ -68,7 +68,7 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue("test", $setQ);
 
         $failureCount = 0;
         self::assertEquals(
@@ -80,10 +80,10 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
                     $failureCount++;
                 }));
 
-        $queue->pump("test");
+        $queue->callConsumers("test");
 
         assertEquals(1, $failureCount);
-        Phake::verify($setQ)->commit($entry->getKey());
+        Phake::verify($setQ)->commit($entry);
     }
 
     public function testWhenInvalidQueueName_thenThrowsException() {
@@ -105,18 +105,18 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue("test", $setQ);
 
         $subscriber1Count = 0;
         $handle1 = $queue->subscribe("test",
             function($key, $message) use (&$subscriber1Count) {
                 $subscriber1Count++;
             });
-        $queue->pump("test");
+        $queue->callConsumers("test");
 
         $queue->unsubscribe($handle1);
 
-        $queue->pump("test");
+        $queue->callConsumers("test");
 
         assertEquals(1, $subscriber1Count);
     }
@@ -127,7 +127,7 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::when($setQ)->getName()->thenReturn('test1');
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue("test", $setQ);
 
         $this->expectException(\InvalidArgumentException::class);
 
@@ -137,15 +137,16 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
 
     public function testSendMessage() {
         $setQ = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $entry = Entry::builder()->key("KEY1")->value("VALUE1")->build();
         Phake::when($setQ)->redrive();
         Phake::when($setQ)->getName()->thenReturn('test');
-        Phake::when($setQ)->enqueue("KEY1", "VALUE1")->thenReturn("VALUE1");
+        Phake::when($setQ)->enqueue($entry)->thenReturn("VALUE1");
 
         $queue = new PubSubQueue();
-        $queue->addQueue($setQ);
+        $queue->addQueue("test", $setQ);
 
-        $queue->send("test", "KEY1", "VALUE1");
-        Phake::verify($setQ)->enqueue("KEY1", "VALUE1");
+        $queue->publish("test", "KEY1", "VALUE1");
+        Phake::verify($setQ)->enqueue($entry, true);
     }
 
 }

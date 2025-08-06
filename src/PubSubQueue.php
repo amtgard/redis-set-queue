@@ -2,9 +2,10 @@
 
 namespace Amtgard\SetQueue;
 
-use Amtgard\SetQueue\DataStructure\DataStructureConfig;
+use Amtgard\Interface\PubSubQueueInterface;
+use Amtgard\Interface\RedrivableQueueInterface;
+use Amtgard\Interface\SetQueueInterface;
 use Amtgard\SetQueue\DataStructure\Entry;
-use Amtgard\SetQueue\DataStructure\Impl\DefaultEntry;
 use Amtgard\SetQueue\DataStructure\SetQueue;
 use Optional\Optional;
 
@@ -16,7 +17,7 @@ use Optional\Optional;
  *      On success, the entry is commit()-ed, which removes it from the redrive Q
  *      On failure, a consumer error handler is called for recovery, and the message is commit()-ed, to remove it from the redrive Q
  */
-class PubSubQueue
+class PubSubQueue implements PubSubQueueInterface
 {
 
     public static String $SUBSCRIBER_EMPTY_ERROR = "Subscriber must not be empty";
@@ -44,11 +45,11 @@ class PubSubQueue
         $this->queueFailureHandlers = [];
     }
 
-    public function addQueue(SetQueue $setQueue): String {
-        if (!array_key_exists($setQueue->getName(), $this->Q)) {
-            $this->Q[$setQueue->getName()] = $setQueue;
+    public function addQueue(string $queueName, SetQueueInterface $setQueue): String {
+        if (!array_key_exists($queueName, $this->Q)) {
+            $this->Q[$queueName] = $setQueue;
         }
-        return $setQueue->getName();
+        return $queueName;
     }
 
     public function redrive($queueName) {
@@ -69,7 +70,7 @@ class PubSubQueue
         return $queueName;
     }
 
-    public function pump(String $queueName, $count = 1) {
+    public function callConsumers(String $queueName, $count = 1) {
         $entries = $this->pull($queueName, $count);
         foreach ($entries as $entry) {
             Optional::ofNullable($entry)
@@ -90,11 +91,12 @@ class PubSubQueue
         unset($this->subscriptions[$queueName]);
     }
 
-    public function send(String $queueName, String $key, String $message, bool $replace = true): String {
+    public function publish(String $queueName, \JsonSerializable|string $key, \JsonSerializable|string $message, bool $replace = true): mixed {
         if (!isset($this->Q[$queueName])) {
             throw new \Exception("Queue is not available");
         }
-        return $this->Q[$queueName]->enqueue($key, $message);
+        $entry = Entry::builder()->key($key)->value($message)->build();
+        return $this->Q[$queueName]->enqueue($entry, $replace);
     }
 
     private function callSubscribers(String $queueName, Entry $entry) {
@@ -105,8 +107,8 @@ class PubSubQueue
         Optional::ofNullable($callback)
             ->ifPresent(function() use ($queueName, $callback, $entry) {
                 try {
-                    call_user_func($callback, $entry->getKey(), $entry->getMessage());
-                    $this->Q[$queueName]->commit($entry->getKey());
+                    call_user_func($callback, $entry->getHash(), $entry->getValue());
+                    $this->Q[$queueName]->commit($entry);
                 } catch (\Exception $e) {
                     // rollback somehow
                     $this->callErrorHandlers($queueName, $e, $entry);
@@ -117,12 +119,12 @@ class PubSubQueue
     private function callErrorHandlers(String $queueName, \Exception $e, Entry $entry) {
         if (isset($this->subscriberFailureHandlers[$queueName])) {
             try {
-                call_user_func($this->subscriberFailureHandlers[$queueName], $e, $entry->getKey(), $entry->getMessage());
+                call_user_func($this->subscriberFailureHandlers[$queueName], $e, $entry->getHash(), $entry->getValue());
             } catch (\Exception $e) {
                 // Well, we tried ...
             }
         }
-        $this->Q[$queueName]->commit($entry->getKey());
+        $this->Q[$queueName]->commit($entry);
     }
 
     private function pull(String $queueName, $count = 1): ?array {

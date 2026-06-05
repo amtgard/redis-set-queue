@@ -45,7 +45,7 @@ class InMemorySetQueueTest extends TestCase
         $this->queue->enqueue($entry);
         self::assertEquals([$entry], $this->queue->dequeue());
         $this->queue->commit($entry);
-        self::assertEquals(null, $this->queue->dequeue()[0]);
+        self::assertEquals([], $this->queue->dequeue());
     }
 
 }

@@ -9,9 +9,11 @@ use Amtgard\SetQueue\DataStructure\SetQueue;
 use Amtgard\SetQueue\PubSubQueue;
 use PHPUnit\Framework\TestCase;
 use Redis;
+use Support\RedisTestHelper;
 
 class RedisPubSubQueueTest extends TestCase
 {
+    use RedisTestHelper;
     private Redis $redis;
     private RedisHashSetFactory $hashSetFactory;
     private RedisRedrivableQueueFactory $redrivableQueueFactory;
@@ -25,13 +27,8 @@ class RedisPubSubQueueTest extends TestCase
             'host' => '127.0.0.1',
             'port' => 36379,
         ]);
-        $this->redis = new Redis();
-        $this->redis->pconnect($config->getConfig()['host'], $config->getConfig()['port']);
-        if ($this->redis->isConnected()) {
-            $this->redis->del("TEST:set");
-            $this->redis->del("TEST:queue");
-            $this->redis->del("TEST:redrive");
-        }
+        $this->redis = $this->connectRedis();
+        $this->flushRedisKeys($this->redis, 'TEST:set', 'TEST:queue', 'TEST:redrive');
 
         $this->hashSetFactory = new RedisHashSetFactory();
         $this->redrivableQueueFactory = new RedisRedrivableQueueFactory();

@@ -1,5 +1,5 @@
-#/bin/sh
+#!/bin/sh
 
-/usr/sbin/service redis-server start
+redis-server /etc/redis/redis.conf --daemonize yes
 
 while true; do sleep 1; done

@@ -11,11 +11,12 @@ use Amtgard\SetQueue\DataStructure\RedrivableQueueFactoryInterface;
 use Amtgard\SetQueue\DataStructure\SetQueue;
 use PHPUnit\Framework\TestCase;
 use Redis;
+use Support\RedisTestHelper;
 use function PHPUnit\Framework\assertEquals;
-use function PHPUnit\Framework\assertNull;
 
 class RedisSetQueueTest extends TestCase
 {
+    use RedisTestHelper;
     private SetQueue $queue;
     private HashSetFactoryInterface $hashSetFactory;
     private RedrivableQueueFactoryInterface $redrivableQueueFactory;
@@ -29,13 +30,8 @@ class RedisSetQueueTest extends TestCase
             'host' => '127.0.0.1',
             'port' => 36379,
         ]);
-        $this->redis = new Redis();
-        $this->redis->pconnect($config->getConfig()['host'], $config->getConfig()['port']);
-        if ($this->redis->isConnected()) {
-            $this->redis->del("TEST:set");
-            $this->redis->del("TEST:queue");
-            $this->redis->del("TEST:redrive");
-        }
+        $this->redis = $this->connectRedis();
+        $this->flushRedisKeys($this->redis, 'TEST:set', 'TEST:queue', 'TEST:redrive');
         $this->hashSetFactory = new RedisHashSetFactory();
         $this->redrivableQueueFactory = new RedisRedrivableQueueFactory();
         $this->queue = new SetQueue("TEST", $config, $this->hashSetFactory, $this->redrivableQueueFactory);
@@ -72,8 +68,7 @@ class RedisSetQueueTest extends TestCase
         $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
         $this->queue->enqueue($entry1);
         assertEquals([$entry1], $this->queue->dequeue());
-        $null = $this->queue->dequeue();
-        assertNull($null[0]);
+        assertEquals([], $this->queue->dequeue());
         $this->queue->redrive();
         assertEquals([$entry1], $this->queue->dequeue());
     }
@@ -84,10 +79,10 @@ class RedisSetQueueTest extends TestCase
         $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
         $this->queue->enqueue($entry1);
         assertEquals([$entry1], $this->queue->dequeue());
-        assertNull($this->queue->dequeue()[0]);
+        assertEquals([], $this->queue->dequeue());
         $this->queue->commit($entry1);
         $this->queue->redrive();
-        assertNull($this->queue->dequeue()[0]);
+        assertEquals([], $this->queue->dequeue());
     }
 
     public function testStoreRetrieve_MixedObject() {
@@ -103,10 +98,10 @@ class RedisSetQueueTest extends TestCase
 
         $response = $this->queue->dequeue();
         assertEquals([$entry1], $response);
-        assertNull($this->queue->dequeue()[0]);
+        assertEquals([], $this->queue->dequeue());
         $this->queue->commit($entry1);
         $this->queue->redrive();
-        assertNull($this->queue->dequeue()[0]);
+        assertEquals([], $this->queue->dequeue());
     }
 
     protected function tearDown(): void

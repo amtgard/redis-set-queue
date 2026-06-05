@@ -42,7 +42,7 @@ class PubSubQueue implements PubSubQueueInterface
     public function __construct() {
         $this->Q = [];
         $this->subscriptions = [];
-        $this->queueFailureHandlers = [];
+        $this->subscriberFailureHandlers = [];
     }
 
     public function addQueue(string $queueName, SetQueueInterface $setQueue): String {
@@ -103,6 +103,9 @@ class PubSubQueue implements PubSubQueueInterface
         if (!isset($this->Q[$queueName])) {
             throw new \Exception("Queue is not available");
         }
+        if (!isset($this->subscriptions[$queueName])) {
+            return;
+        }
         $callback = $this->subscriptions[$queueName];
         Optional::ofNullable($callback)
             ->ifPresent(function() use ($queueName, $callback, $entry) {
@@ -127,10 +130,10 @@ class PubSubQueue implements PubSubQueueInterface
         $this->Q[$queueName]->commit($entry);
     }
 
-    private function pull(String $queueName, $count = 1): ?array {
+    private function pull(String $queueName, $count = 1): array {
         if (isset($this->Q[$queueName])) {
             return $this->Q[$queueName]->dequeue($count);
         }
-        return null;
+        return [];
     }
 }

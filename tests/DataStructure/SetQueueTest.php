@@ -67,4 +67,47 @@ class SetQueueTest extends TestCase
         self::assertEquals([$entry], $response);
     }
 
+    public function testEnqueueWhenContainsAndReplaceFalseDoesNotUpdateSet() {
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        Phake::when($this->mockSet)->contains($entry)->thenReturn(true);
+        Phake::when($this->mockSet)->get($entry)->thenReturn("ORIGINAL");
+
+        self::assertEquals("ORIGINAL", $this->setQueue->enqueue($entry, false));
+        Phake::verify($this->mockSet, Phake::never())->add($entry);
+        Phake::verify($this->mockQueue, Phake::never())->enqueue($entry);
+    }
+
+    public function testEnqueueWhenNotContainedEnqueuesToQueue() {
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        Phake::when($this->mockSet)->contains($entry)->thenReturn(false);
+        Phake::when($this->mockSet)->add($entry)->thenReturn("VALUE");
+        Phake::when($this->mockSet)->get($entry)->thenReturn("VALUE");
+
+        self::assertEquals("VALUE", $this->setQueue->enqueue($entry));
+        Phake::verify($this->mockQueue)->enqueue($entry);
+    }
+
+    public function testDequeueSkipsEntriesWithNullValues() {
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        Phake::when($this->mockQueue)->dequeue(1)->thenReturn([$entry]);
+        Phake::when($this->mockSet)->getList([$entry])->thenReturn([null]);
+
+        self::assertEquals([], $this->setQueue->dequeue());
+    }
+
+    public function testCommit() {
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        Phake::when($this->mockSet)->remove($entry)->thenReturn("VALUE");
+        Phake::when($this->mockQueue)->commit($entry)->thenReturn(true);
+
+        self::assertTrue($this->setQueue->commit($entry));
+        Phake::verify($this->mockSet)->remove($entry);
+        Phake::verify($this->mockQueue)->commit($entry);
+    }
+
+    public function testRedrive() {
+        $this->setQueue->redrive();
+        Phake::verify($this->mockQueue)->redrive();
+    }
+
 }

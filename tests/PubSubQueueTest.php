@@ -149,4 +149,125 @@ class PubSubQueueTest extends \PHPUnit\Framework\TestCase
         Phake::verify($setQ)->enqueue($entry, true);
     }
 
+    public function testAddQueueDoesNotOverwriteExisting() {
+        $setQ1 = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $setQ2 = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $entry = Phake::mock(Entry::class);
+        Phake::when($entry)->getHash()->thenReturn('key');
+        Phake::when($entry)->getValue()->thenReturn('value');
+        Phake::when($setQ1)->dequeue(1)->thenReturn([$entry]);
+
+        $queue = new PubSubQueue();
+        $queue->addQueue('test', $setQ1);
+        $queue->addQueue('test', $setQ2);
+        $queue->subscribe('test', function () {});
+
+        $queue->callConsumers('test');
+        Phake::verify($setQ1)->dequeue(1);
+        Phake::verify($setQ2, Phake::never())->dequeue(Phake::anyParameters());
+    }
+
+    public function testRedriveInvalidQueueThrows() {
+        $queue = new PubSubQueue();
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(PubSubQueue::$QUEUE_NAME_INVALID_ERROR);
+        $queue->redrive('missing');
+    }
+
+    public function testPublishInvalidQueueThrows() {
+        $queue = new PubSubQueue();
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Queue is not available');
+        $queue->publish('missing', 'KEY', 'VALUE');
+    }
+
+    public function testWhenFailureHandlerThrows_thenEntryStillCommitted() {
+        $setQ = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $entry = Phake::mock(Entry::class);
+        Phake::when($entry)->getHash()->thenReturn('key');
+        Phake::when($entry)->getValue()->thenReturn('value');
+        Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
+
+        $queue = new PubSubQueue();
+        $queue->addQueue('test', $setQ);
+        $queue->subscribe('test',
+            function () { throw new \Exception('consumer failed'); },
+            function () { throw new \Exception('handler failed'); }
+        );
+
+        $queue->callConsumers('test');
+        Phake::verify($setQ)->commit($entry);
+    }
+
+    public function testCallConsumersWithUnknownQueueDoesNothing() {
+        $queue = new PubSubQueue();
+        $queue->callConsumers('missing');
+        self::assertTrue(true);
+    }
+
+    public function testCallSubscribersThrowsWhenQueueMissing() {
+        $queue = new PubSubQueue();
+        $entry = Entry::builder()->key('KEY')->value('VALUE')->build();
+        $method = new \ReflectionMethod(PubSubQueue::class, 'callSubscribers');
+        $method->setAccessible(true);
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Queue is not available');
+        $method->invoke($queue, 'missing', $entry);
+    }
+
+    public function testOnConsumeFailureRegistersHandler() {
+        $queue = new PubSubQueue();
+        $setQ = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $queue->addQueue('test', $setQ);
+
+        $method = new \ReflectionMethod(PubSubQueue::class, 'onConsumeFailure');
+        $method->setAccessible(true);
+        $method->invoke($queue, 'test', function () {});
+
+        $entry = Phake::mock(Entry::class);
+        Phake::when($entry)->getHash()->thenReturn('key');
+        Phake::when($entry)->getValue()->thenReturn('value');
+        Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
+
+        $queue->subscribe('test', function () { throw new \Exception('fail'); });
+        $queue->callConsumers('test');
+        Phake::verify($setQ)->commit($entry);
+    }
+
+    public function testSubscribeWithFailureHandlerRegistersHandler() {
+        $setQ = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $entry = Phake::mock(Entry::class);
+        Phake::when($entry)->getHash()->thenReturn('key');
+        Phake::when($entry)->getValue()->thenReturn('value');
+        Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
+
+        $queue = new PubSubQueue();
+        $queue->addQueue('test', $setQ);
+
+        $handled = false;
+        $queue->subscribe('test',
+            function () { throw new \Exception('fail'); },
+            function () use (&$handled) { $handled = true; }
+        );
+        $queue->callConsumers('test');
+
+        self::assertTrue($handled);
+    }
+
+    public function testWhenFailureWithoutHandler_thenEntryCommitted() {
+        $setQ = Phake::mock(Amtgard\SetQueue\DataStructure\SetQueue::class);
+        $entry = Phake::mock(Entry::class);
+        Phake::when($entry)->getHash()->thenReturn('key');
+        Phake::when($entry)->getValue()->thenReturn('value');
+        Phake::when($setQ)->dequeue(1)->thenReturn([$entry]);
+
+        $queue = new PubSubQueue();
+        $queue->addQueue('test', $setQ);
+        $queue->subscribe('test', function () { throw new \Exception('consumer failed'); });
+
+        $queue->callConsumers('test');
+        Phake::verify($setQ)->commit($entry);
+    }
+
 }

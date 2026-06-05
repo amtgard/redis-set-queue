@@ -30,7 +30,7 @@ class InMemoryRedrivableQueueTest extends TestCase
         $entry1 = Entry::builder()->value("ENTRY1")->build();
         $queue->enqueue($entry1);
         assertEquals([$entry1], $queue->dequeue());
-        assertNull($queue->dequeue()[0]);
+        assertEquals([], $queue->dequeue());
         $queue->redrive();
         assertEquals([$entry1], $queue->dequeue());
     }
@@ -41,9 +41,9 @@ class InMemoryRedrivableQueueTest extends TestCase
         $entry1 = Entry::builder()->value("ENTRY1")->build();
         $queue->enqueue($entry1);
         assertEquals([$entry1], $queue->dequeue());
-        assertNull($queue->dequeue()[0]);
+        assertEquals([], $queue->dequeue());
         $queue->commit($entry1);
         $queue->redrive();
-        assertNull($queue->dequeue()[0]);
+        assertEquals([], $queue->dequeue());
     }
 }

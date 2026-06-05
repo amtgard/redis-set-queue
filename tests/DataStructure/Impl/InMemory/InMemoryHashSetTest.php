@@ -54,4 +54,26 @@ class InMemoryHashSetTest extends TestCase {
         \PHPUnit\Framework\assertNull($set->get(Entry::builder()->key("KEY")->value("V")->build()));
     }
 
+    public function testWhenAddDuplicate_thenReturnsExistingValue() {
+        $set = new InMemoryHashSet();
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        $set->add($entry);
+        $entry2 = Entry::builder()->key("KEY")->value("OTHER")->build();
+        \PHPUnit\Framework\assertEquals("VALUE", $set->add($entry2));
+    }
+
+    public function testWhenRemoveMissing_thenReturnsNull() {
+        $set = new InMemoryHashSet();
+        $entry = Entry::builder()->key("KEY")->value("VALUE")->build();
+        \PHPUnit\Framework\assertNull($set->remove($entry));
+    }
+
+    public function testGetList() {
+        $set = new InMemoryHashSet();
+        $entry1 = Entry::builder()->key("KEY1")->value("VALUE1")->build();
+        $entry2 = Entry::builder()->key("KEY2")->value("VALUE2")->build();
+        $set->add($entry1);
+        \PHPUnit\Framework\assertEquals(["VALUE1", null], $set->getList([$entry1, $entry2]));
+    }
+
 }
